@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pembuat QR Code Interaktif</title>
+    <!-- Memuat Tailwind CSS untuk styling modern dan responsif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memuat library qrcode.js untuk menghasilkan kode QR -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style>
+        /* Mengatur font default dan memastikan elemen fokus terlihat */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* Style untuk area QR Code */
+        #qrcode-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            background-color: #ffffff;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            min-height: 250px; /* Memastikan ada ruang saat kode belum dibuat */
+        }
+        /* Style untuk elemen canvas/table yang dibuat oleh qrcode.js */
+        #qrcode-container > * {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-8 flex items-center justify-center">
+
+    <div class="w-full max-w-lg bg-white rounded-xl shadow-2xl p-6 sm:p-8">
+        <!-- Header Aplikasi -->
+        <h1 class="text-3xl font-extrabold text-indigo-700 mb-2 text-center">
+            Pembuat QR Code Multifungsi
+        </h1>
+        <p class="text-gray-500 mb-6 text-center">
+            Pilih jenis konten dan masukkan detail yang diperlukan.
+        </p>
+
+        <!-- Pilihan Tipe Konten -->
+        <div class="mb-4">
+            <label for="qrType" class="block text-sm font-medium text-gray-700 mb-2">
+                Pilih Tipe Konten:
+            </label>
+            <select id="qrType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out shadow-sm">
+                <option value="text">Teks / URL Sederhana</option>
+                <option value="wifi">Akses Jaringan WiFi</option>
+                <option value="vcard">Kontak (VCard)</option>
+            </select>
+        </div>
+        
+        <!-- --- Kontainer Input Dinamis --- -->
+
+        <!-- 1. Kontainer Teks / URL Sederhana (Aktif Default) -->
+        <div id="text-fields" class="type-fields mb-6">
+            <label for="qrInput" class="block text-sm font-medium text-gray-700 mb-2">
+                Teks atau URL yang akan di-encode:
+            </label>
+            <input type="text" id="qrInput" value="https://www.google.com" placeholder="Contoh: https://gemini.google.com"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out shadow-sm">
+        </div>
+
+        <!-- 2. Kontainer WiFi (Tersembunyi Default) -->
+        <div id="wifi-fields" class="type-fields mb-6 hidden">
+            <label for="wifiSsid" class="block text-sm font-medium text-gray-700 mb-2">SSID (Nama Jaringan):</label>
+            <input type="text" id="wifiSsid" placeholder="Nama Jaringan Anda" 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3 focus:ring-indigo-500 focus:border-indigo-500">
+
+            <label for="wifiPassword" class="block text-sm font-medium text-gray-700 mb-2">Kata Sandi (Kosongkan jika Tanpa Kata Sandi):</label>
+            <input type="text" id="wifiPassword" placeholder="Kata Sandi Jaringan" 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3 focus:ring-indigo-500 focus:border-indigo-500">
+            
+            <label for="wifiEncryption" class="block text-sm font-medium text-gray-700 mb-2">Tipe Enkripsi:</label>
+            <select id="wifiEncryption" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="WPA">WPA/WPA2</option>
+                <option value="WEP">WEP</option>
+                <option value="nopass">Tanpa Kata Sandi</option>
+            </select>
+        </div>
+
+        <!-- 3. Kontainer VCard (Kontak) (Tersembunyi Default) -->
+        <div id="vcard-fields" class="type-fields mb-6 hidden">
+            <p class="text-sm text-gray-500 mb-3 italic">Setidaknya salah satu bidang Nama, Telepon, atau Email wajib diisi.</p>
+
+            <label for="vcardName" class="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap:</label>
+            <input type="text" id="vcardName" placeholder="Contoh: Budi Santoso" 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3 focus:ring-indigo-500 focus:border-indigo-500">
+
+            <label for="vcardPhone" class="block text-sm font-medium text-gray-700 mb-2">Nomor Telepon:</label>
+            <input type="tel" id="vcardPhone" placeholder="Contoh: +628123456789" 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3 focus:ring-indigo-500 focus:border-indigo-500">
+
+            <label for="vcardEmail" class="block text-sm font-medium text-gray-700 mb-2">Email:</label>
+            <input type="email" id="vcardEmail" placeholder="Contoh: budi@contoh.com" 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        
+        <!-- --- Akhir Kontainer Input Dinamis --- -->
+
+        <!-- Tombol Generate -->
+        <button id="generateBtn"
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 ease-in-out transform hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 mb-6 shadow-md">
+            Generate QR Code
+        </button>
+
+        <hr class="mb-6">
+
+        <!-- Area Tampilan QR Code -->
+        <div class="text-lg font-semibold text-gray-700 mb-3 text-center">
+            Hasil QR Code:
+        </div>
+        <div id="qrcode-container">
+            <!-- QR Code akan muncul di sini -->
+            <p class="text-gray-400">Pilih tipe, isi data, dan tekan tombol Generate.</p>
+        </div>
+        
+        <!-- Area Tombol Unduh (Akan ditampilkan setelah kode dibuat) -->
+        <div class="mt-6 hidden" id="downloadArea">
+            <button id="downloadBtn"
+                    class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 ease-in-out transform hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 shadow-md">
+                Unduh QR Code (PNG)
+            </button>
+        </div>
+
+        <!-- Area Pesan (Untuk notifikasi) -->
+        <div id="messageBox" class="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden" role="alert">
+            <p id="messageText"></p>
+        </div>
+
+    </div>
+
+    <script>
+        // Mendapatkan elemen DOM yang diperlukan
+        const qrInput = document.getElementById('qrInput');
+        const qrType = document.getElementById('qrType'); // Tipe baru
+        const generateBtn = document.getElementById('generateBtn');
+        const qrcodeContainer = document.getElementById('qrcode-container');
+        const downloadArea = document.getElementById('downloadArea');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('messageText');
+        const typeFieldContainers = document.querySelectorAll('.type-fields'); // Kontainer field dinamis
+
+        let qrCodeInstance = null; // Variabel untuk menyimpan instance QR Code
+        
+        // Input fields untuk tipe spesifik
+        const inputTextFields = {
+            text: document.getElementById('qrInput'),
+            wifi: {
+                ssid: document.getElementById('wifiSsid'),
+                password: document.getElementById('wifiPassword'),
+                encryption: document.getElementById('wifiEncryption')
+            },
+            vcard: {
+                name: document.getElementById('vcardName'),
+                phone: document.getElementById('vcardPhone'),
+                email: document.getElementById('vcardEmail')
+            }
+        };
+
+
+        /**
+         * Menampilkan pesan notifikasi.
+         * @param {string} message - Teks pesan.
+         * @param {string} type - 'success' atau 'error'.
+         */
+        function showMessage(message, type) {
+            messageText.textContent = message;
+            messageBox.classList.remove('hidden');
+            
+            // Mengatur warna berdasarkan tipe pesan
+            if (type === 'success') {
+                messageBox.classList.remove('bg-red-100', 'border-red-400', 'text-red-700');
+                messageBox.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
+            } else { // error
+                messageBox.classList.remove('bg-green-100', 'border-green-400', 'text-green-700');
+                messageBox.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+            }
+
+            // Menyembunyikan pesan setelah beberapa detik
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 3000);
+        }
+
+        /**
+         * Mengubah tampilan input field berdasarkan tipe QR Code yang dipilih.
+         */
+        function handleTypeChange() {
+            const selectedType = qrType.value;
+            // Sembunyikan semua kontainer
+            typeFieldContainers.forEach(container => {
+                container.classList.add('hidden');
+            });
+            // Tampilkan kontainer yang sesuai
+            document.getElementById(selectedType + '-fields').classList.remove('hidden');
+            // Sembunyikan pesan notifikasi saat tipe berubah
+            messageBox.classList.add('hidden');
+        }
+
+        /**
+         * Memformat data input menjadi string standar yang dapat dibaca oleh pemindai QR.
+         * @param {string} type - Tipe QR Code yang dipilih.
+         * @returns {string} Data string yang diformat.
+         * @throws {Error} Jika ada input yang wajib diisi dan kosong.
+         */
+        function formatDataByType(type) {
+            let data = '';
+            
+            // Helper untuk meng-escape karakter khusus seperti '\', ';', ',', ':'
+            const escapeChar = (str) => str.replace(/([\\;:,])/g, '\\$1');
+
+            if (type === 'text') {
+                data = inputTextFields.text.value.trim();
+                if (!data) throw new Error("Input teks atau URL tidak boleh kosong.");
+            } 
+            else if (type === 'wifi') {
+                const ssid = escapeChar(inputTextFields.wifi.ssid.value.trim());
+                const pass = escapeChar(inputTextFields.wifi.password.value.trim());
+                const enc = inputTextFields.wifi.encryption.value;
+
+                if (!ssid) throw new Error("Nama Jaringan (SSID) wajib diisi.");
+
+                if (enc === 'nopass') {
+                    // Format: WIFI:T:nopass;S:<ssid>;;
+                    data = `WIFI:T:nopass;S:${ssid};;`;
+                } else {
+                    if (!pass) throw new Error("Kata Sandi wajib diisi untuk enkripsi WPA/WEP.");
+                    // Format: WIFI:T:<encryption>;S:<ssid>;P:<password>;;
+                    data = `WIFI:T:${enc};S:${ssid};P:${pass};;`;
+                }
+            } 
+            else if (type === 'vcard') {
+                const name = inputTextFields.vcard.name.value.trim();
+                const phone = inputTextFields.vcard.phone.value.trim();
+                const email = inputTextFields.vcard.email.value.trim();
+
+                if (!name && !phone && !email) throw new Error("Setidaknya salah satu bidang Kontak (Nama, Telepon, atau Email) harus diisi.");
+
+                // VCard format standard (version 3.0)
+                data = "BEGIN:VCARD\nVERSION:3.0\n";
+                if (name) data += `FN:${name}\n`; // Nama Lengkap
+                if (phone) data += `TEL:${phone}\n`; // Telepon
+                if (email) data += `EMAIL:${email}\n`; // Email
+                data += "END:VCARD";
+            }
+
+            return data;
+        }
+
+        /**
+         * Menghasilkan dan menampilkan QR Code.
+         */
+        function generateQRCode() {
+            const selectedType = qrType.value;
+            let data = '';
+
+            try {
+                // Mendapatkan data yang sudah diformat berdasarkan tipe yang dipilih
+                data = formatDataByType(selectedType);
+
+                // Menghapus QR Code yang ada di container
+                qrcodeContainer.innerHTML = '';
+                
+                // Membuat instance QR Code baru
+                qrCodeInstance = new QRCode(qrcodeContainer, {
+                    text: data,
+                    width: 250,
+                    height: 250,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H // Level koreksi kesalahan tinggi
+                });
+
+                // Menampilkan tombol unduh
+                downloadArea.classList.remove('hidden');
+                showMessage('QR Code berhasil dibuat!', 'success');
+
+            } catch (error) {
+                // Menangkap kesalahan dari formatDataByType (misalnya, input kosong)
+                console.error("Kesalahan saat membuat QR Code:", error);
+                const errorMessage = error.message || 'Gagal membuat QR Code. Periksa input Anda.';
+                showMessage(errorMessage, 'error');
+                
+                // Reset tampilan QR Code
+                qrcodeContainer.innerHTML = '<p class="text-gray-400">Terjadi kesalahan atau input kosong.</p>';
+                downloadArea.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Mengkonversi QR Code (canvas) menjadi data URL dan memulai unduhan.
+         */
+        function downloadQRCode() {
+            // Ambil tipe yang sedang aktif dari dropdown
+            const selectedType = qrType.value; // Perbaikan: Ambil nilai qrType di sini
+
+            if (!qrCodeInstance) {
+                showMessage('Tidak ada QR Code untuk diunduh.', 'error');
+                return;
+            }
+
+            // qrcode.js menghasilkan <canvas> atau <table>. Kita perlu mencari elemen <canvas>.
+            const canvas = qrcodeContainer.querySelector('canvas');
+            
+            if (canvas) {
+                // Mengkonversi konten canvas menjadi data URL (PNG)
+                const dataURL = canvas.toDataURL("image/png");
+                
+                // Membuat elemen link sementara untuk memulai unduhan
+                const a = document.createElement('a');
+                a.href = dataURL;
+                // Menetapkan nama file unduhan. Sekarang 'selectedType' sudah didefinisikan.
+                a.download = 'qrcode-' + selectedType + '-' + Date.now() + '.png'; 
+                
+                // Klik elemen link secara otomatis
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                showMessage('QR Code berhasil diunduh!', 'success');
+            } else {
+                showMessage('Elemen canvas tidak ditemukan untuk unduhan.', 'error');
+            }
+        }
+
+        // --- Event Listeners ---
+
+        // 1. Tipe QR Code berubah
+        qrType.addEventListener('change', handleTypeChange);
+
+        // 2. Tombol Generate
+        generateBtn.addEventListener('click', generateQRCode);
+
+        // 3. Tombol Unduh
+        downloadBtn.addEventListener('click', downloadQRCode);
+
+        // 4. Menghasilkan kode QR saat tombol Enter ditekan pada input (pada bidang input apa pun)
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.target.closest('.type-fields')) {
+                generateQRCode();
+            }
+        });
+
+        // Hasilkan kode QR default saat aplikasi dimuat
+        window.onload = function() {
+            handleTypeChange(); // Pastikan field Teks/URL ditampilkan
+            generateQRCode(); // Generate QR code untuk input default
+        };
+    </script>
+</body>
+</html>
